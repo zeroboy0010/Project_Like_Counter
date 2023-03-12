@@ -1,9 +1,9 @@
+import time
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 
 import urllib.request
-import time
 
 cred = credentials.Certificate("/home/zero/Desktop/Project_Like_counter/Google_data_base/like-counter-3d752-firebase-adminsdk-5171a-3e9fd0d978.json")
 firebase_admin.initialize_app(cred)
@@ -27,36 +27,35 @@ def get_like(page):
         print('error')
     return like_count
 
-
-
-
-
 def main():
     main_loop = time.time()  # return time in sec
-
-    like_count = get_like('TubeCoffeeCambodia')
-    main_loop_time = time.time()
-    print('Total time: ', main_loop_time - main_loop)
-    print(like_count)
     db = firestore.client() # connecting to firestore
-
     collection = db.collection('project_like_counter')  # create collection
-    res = collection.document('page_001').set({ # insert document
-        'name': 'TubeCoffeeCambodia',
-        'like': like_count,
-        'state': 'Running',
-        'Programming_languages': ['Python', 'C++']
-    })
-
-
-if __name__ == "__main__":
-    try :
+    docs = collection.stream()  
+    for doc in docs:
+        # print(f'{doc.id} => {doc.to_dict()}')
+        ##########
+        state = str(doc.to_dict()['state'])
+        pageID = str(doc.to_dict()['pageID'])
+        like = str(doc.to_dict()['like'])
+        ##########
+        print("-----------------------------------")
+        main_loop_time = time.time()
+        print('Total time catch ID from firestore : ', main_loop_time - main_loop)
+        ####
         while(True):
-            main()
+            main_loop = time.time()  # return time in sec
+            like_count = get_like(pageID)
+            main_loop_time = time.time()
+            print('Total time get like from url : ', main_loop_time - main_loop)
+            res = collection.document(doc.id).set({ # insert document
+                'like': like_count,
+                'pageID': pageID,
+                'state' : state
+            })
+
+if __name__ == '__main__' :
+    try :
+        main()
     except KeyboardInterrupt :
         pass
-
-
-
-
-

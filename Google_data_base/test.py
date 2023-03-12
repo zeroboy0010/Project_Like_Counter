@@ -13,5 +13,5 @@ res = collection.document('page_001').set({ # insert document
     'like': 10000000,
     'state': 'Running',
     'Programming_languages': ['Python', 'C++']
-})
+})  
 print(res)
