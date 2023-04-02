@@ -32,7 +32,7 @@ def get_like(page):
         print('error')
     return like_count
 
-def publish_to_rirestore(id,pageID,like_count):
+def publish_to_firestore(id,pageID,like_count):
     collection.document(id).set({ # insert document
         'like': like_count,
         'pageID': pageID,
@@ -43,7 +43,7 @@ def publish_to_rirestore(id,pageID,like_count):
 def thread_function(id,pageID):
     like_count = get_like(pageID)
     logging.info("get!!!")
-    publish_to_rirestore(id,pageID,like_count)
+    publish_to_firestore(id,pageID,like_count)
     logging.info("pub!!!")
 
 
@@ -63,9 +63,12 @@ def main():
     for thread in threads:
         thread.join()
 
+
 if __name__ == '__main__':
     try :
-        while(1):
+        db = firestore.client() # connecting to firestore
+        collection = db.collection('project_like_counter')  # create collection
+        while(True):
             format = "%(asctime)s: %(message)s"
             logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
