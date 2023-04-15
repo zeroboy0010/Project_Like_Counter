@@ -1,4 +1,5 @@
 import urllib.request
+import urllib.robotparser
 
 ## TubeCoffeeCambodia   ## problem ## fixed
 ## koithecambodia
@@ -7,19 +8,7 @@ import urllib.request
 with urllib.request.urlopen('https://web.facebook.com/TubeCoffeeCambodia') as response :
     body = response.read()
 character_set = response.headers.get_content_charset()
-content = body.decode(character_set)
-workspace = content
+print(character_set)
+# content = body.decode(character_set)
 
-try:
-    like = workspace[:workspace.index('&#x1785')].rsplit('.', 1)[1]
-    count = ''
-    for i in like:
-        if i == ',':
-            pass
-        else :
-            count += i
-    like_count = (int) (count)
-    print(like_count)
-except :
-    print('error')
-
+# print(content[:1000])

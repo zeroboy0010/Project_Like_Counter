@@ -19,7 +19,7 @@ def get_like(page):
         count = ''
         for i in like:
             if i == ',':
-                pass
+                pass 
             else :
                 count += i
         like_count = (int) (count)

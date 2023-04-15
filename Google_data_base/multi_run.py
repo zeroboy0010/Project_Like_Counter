@@ -13,6 +13,19 @@ firebase_admin.initialize_app(cred)
 db = firestore.client() # connecting to firestore
 collection = db.collection('project_like_counter')  # create collection
 
+import requests
+from bs4 import BeautifulSoup
+import re
+def get_like_v2(page):
+    vgm_url = 'https://web.facebook.com/koithecambodia' + page
+    html_text = requests.get(vgm_url).text
+    soup = BeautifulSoup(html_text, 'html.parser')
+    for link in soup.findAll("meta", {"name":"description"}): ## 
+        content = link.get('content')
+        num = re.findall(r'[\d]+[.,\d]+', content)
+        like = (int)(num[0].replace(",", ""))
+        return like
+
 def get_like(page):
     with urllib.request.urlopen('https://web.facebook.com/' + page) as response :
         body = response.read()
@@ -41,7 +54,7 @@ def publish_to_firestore(id,pageID,like_count):
     
 
 def thread_function(id,pageID):
-    like_count = get_like(pageID)
+    like_count = get_like_v2(pageID)
     logging.info("get!!!")
     publish_to_firestore(id,pageID,like_count)
     logging.info("pub!!!")
