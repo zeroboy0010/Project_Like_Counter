@@ -17,7 +17,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 def get_like_v2(page):
-    vgm_url = 'https://web.facebook.com/koithecambodia' + page
+    vgm_url = 'https://web.facebook.com/' + page
     html_text = requests.get(vgm_url).text
     soup = BeautifulSoup(html_text, 'html.parser')
     for link in soup.findAll("meta", {"name":"description"}): ## 
