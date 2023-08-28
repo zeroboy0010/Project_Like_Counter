@@ -42,6 +42,22 @@ bool taskCompleted = false;
 #define USER_EMAIL "zeroeverything001@gmail.com"
 #define USER_PASSWORD "11112222"
 
+// Replace with your network credentials
+const char* ssid     = "Like_counter_demo";
+const char* password = "12345678";
+// Set web server port number to 80
+WiFiServer server(80);
+
+// Variable to store the HTTP request
+String header;
+
+// Auxiliar variables to store the current output state
+String output26State = "off";
+String output27State = "off";
+
+// Assign output variables to GPIO pins
+const int output26 = LED_BUILTIN;
+
 // Define Firebase Data object
 FirebaseData fbdo;
 
@@ -51,32 +67,42 @@ FirebaseConfig config;
 unsigned long dataMillis = 0;
 char Like_str[8];
 
+int connected_wifi;
+
 // connect wifi and firestore
 void connect();
-
+void running_ap();
 void setup()
 {
   EEPROM.begin(150);
   Serial.begin(9600);
   // condition here
-  Serial.println("type \"c=\" if you want to config!! \n you have 5 seconds!!");
-  while (millis() < 5000){
-    store_data();
-  }
   if (Wifi_status == true ){
     connect();
   }
+  // WiFi.mode(WIFI_AP_STA);
+  if (connected_wifi == 0){
+    WiFi.softAP(ssid, password);
+    Serial.print("[+] AP Created with IP Gateway ");
+    Serial.println(WiFi.softAPIP());
+    pinMode(output26, OUTPUT);
+    digitalWrite(output26, LOW);
+    server.begin();
+  }
+
+
+
   max7219.Begin();
 }
 
 void loop()
 {
-
+  if (connected_wifi == 0){
+    running_ap();
+  }
+  
     // Firebase.ready() should be called repeatedly to handle authentication tasks.
-    if(Serial.available() == 0 && Wifi_status == false){
-      store_data();
-    }
-    if (Firebase.ready() && (millis() - dataMillis > 1000 || dataMillis == 0) && Wifi_status == true)
+    if (Firebase.ready() && (millis() - dataMillis > 1000 || dataMillis == 0) && Wifi_status == true && connected_wifi == 1 )
     {
         dataMillis = millis();
         String documentPath = "project_like_counter/device_001";
@@ -184,8 +210,16 @@ void connect(){
   {
       Serial.print(".");
       delay(300);
+      if (millis() - ms >= 10000){
+        break;
+        Serial.println("cant connect wifi");
+        connected_wifi = 0;
+      }
+      else {
+        connected_wifi = 1;
+      }
   }
-  if (Wifi_status == true){
+  if (Wifi_status == true && connected_wifi == 1){
     Serial.println();
     Serial.print("Connected with IP: ");
     Serial.println(WiFi.localIP());
@@ -211,6 +245,124 @@ void connect(){
     Firebase.reconnectWiFi(true);
   }
 }
+
+
+void running_ap(){
+  WiFiClient client = server.available();   // Listen for incoming clients
+
+  if (client) {                             // If a new client connects,
+    Serial.println("New Client.");          // print a message out in the serial port
+    String currentLine = "";                // make a String to hold incoming data from the client
+    while (client.connected()) {            // loop while the client's connected
+      if (client.available()) {             // if there's bytes to read from the client,
+        char c = client.read();             // read a byte, then
+        Serial.write(c);                    // print it out the serial monitor
+        header += c;
+        if (c == '\n') {                    // if the byte is a newline character
+          // if the current line is blank, you got two newline characters in a row.
+          // that's the end of the client HTTP request, so send a response:
+          if (currentLine.length() == 0) {
+            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+            // and a content-type so the client knows what's coming, then a blank line:
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println("Connection: close");
+            client.println();
+            
+            // turns the GPIOs on and off
+            
+            if (header.indexOf("GET /zero/on") >= 0) {
+              Serial.println("GPIO 26 on");
+              output26State = "on";
+              digitalWrite(output26, HIGH);
+            } else if (header.indexOf("GET /zero/off") >= 0) {
+              Serial.println("GPIO 26 off");
+              output26State = "off";
+              digitalWrite(output26, LOW);
+            }
+            else {
+              Serial.println("-----------------------");
+              Serial.println(header.c_str());
+              String SSID = header.substring(header.indexOf("SSID=") + 5 ,header.indexOf("&Password"));
+              String Password = header.substring(header.indexOf("Password=") + 9,header.indexOf("&PageID"));
+              String PageID = header.substring(header.indexOf("PageID=") + 7,header.indexOf(" HTTP"));
+              Serial.print("SSID = ");
+              Serial.println(SSID);
+              Serial.print("Password = ");
+              Serial.println(Password);
+              Serial.print("PageID = ");
+              Serial.println(PageID);
+              
+              int Offset = writeStringToEEPROM(0, SSID);  // 50 bytes
+              Serial.println("SSID = " + SSID + "\n length = " + Offset);
+              Offset = writeStringToEEPROM(50, Password); // 50 bytes
+              Serial.println("Password = " + Password + "\n length = " + int(Offset - 50));
+              Offset = writeStringToEEPROM(100, PageID); // 50 bytes
+              Serial.println("PageID = " + PageID + "\n length = " + int(Offset - 50));
+              EEPROM.commit();
+            }
+            
+            // Display the HTML web page
+            client.println("<!DOCTYPE html><html>");
+            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+            client.println("<link rel=\"icon\" href=\"data:,\">");  
+            // CSS to style the on/off buttons 
+            // Feel free to change the background-color and font-size attributes to fit your preferences
+            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+            client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
+            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
+            client.println(".button2 {background-color: #555555;}</style></head>");
+            
+            // Web Page Heading
+            client.println("<body><h1>Testing ESP32 Web Server</h1>");
+            
+            // Display current state, and ON/OFF buttons for GPIO 26  
+            client.println("<p>GPIO zero - State " + output26State + "</p>");
+            // If the output26State is off, it displays the ON button       
+            if (output26State=="off") {
+              client.println("<p><a href=\"/zero/on\"><button class=\"button\">ON</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/zero/off\"><button class=\"button button2\">OFF</button></a></p>");
+            } 
+               
+            client.println("<form action=\"/page_like_counter\">");
+
+            client.println("<label for=\"SSID\">SSID:</label>");
+            client.println("<input type=\text\" id=\"SSID\" name=\"SSID\" placeholder=\"wifi name\"><br><br>");
+
+            client.println("<label for=\"Password\">Password:</label>");
+            client.println("<input type=\text\" id=\"Password\" name=\"Password\" placeholder=\"wifi password\"><br><br>");
+
+            client.println("<label for=\"PageID\">PageID:</label>");
+            client.println("<input type=\text\" id=\"PageID\" name=\"PageID\" placeholder=\"pageid\"><br><br>");
+
+            client.println("<input type=\"submit\" value=\"Submit\">");
+            client.println("</form>");
+            
+            // The HTTP response ends with another blank line
+            client.println();
+            // Break out of the while loop
+            break;
+          } else { // if you got a newline, then clear currentLine
+            currentLine = "";
+          }
+        } else if (c != '\r') {  // if you got anything else but a carriage return character,
+          currentLine += c;      // add it to the end of the currentLine
+        }
+      }
+    }
+    // Clear the header variable
+    header = "";
+    // Close the connection
+    client.stop();
+    Serial.println("Client disconnected.");
+    Serial.println("");
+  }
+}
+
+
+
+
 
 void store_data(){
   Input = Serial.readStringUntil('\n');

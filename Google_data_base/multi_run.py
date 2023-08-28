@@ -16,6 +16,40 @@ collection = db.collection('project_like_counter')  # create collection
 import requests
 from bs4 import BeautifulSoup
 import re
+
+def get_telegram_subscriber(page):
+    vgm_url = 'https://t.me/' + page
+    html_text = requests.get(vgm_url).text
+    soup = BeautifulSoup(html_text, 'html.parser')
+    like = 0
+
+    for link in soup.findAll("div", {"class":"tgme_page_extra"}):
+        print (link)
+        content = link.get_text()
+        text = content.replace(" ", "")
+        num = re.findall(r'[\d]+[.,\d]+', text)
+        like = (int)(num[0])
+        print(like)
+    
+    return like
+
+def get_follower(page):
+    vgm_url = 'https://www.instagram.com/' + page
+    html_text = requests.get(vgm_url).text
+    soup = BeautifulSoup(html_text, 'html.parser')
+    like = 0
+
+    for link in soup.findAll("script", {"type":"application/ld+json"}):
+        source = str(link)
+        text = source[:source.index('</script>')].rsplit('userInteractionCount', 1)[1]
+        num = re.findall(r'[\d]+[.,\d]+', text)
+        like = (int)(num[0])
+
+
+    # print(like)
+    
+    return like
+
 def get_like_v2(page):
     vgm_url = 'https://web.facebook.com/' + page
     html_text = requests.get(vgm_url).text
@@ -54,7 +88,7 @@ def publish_to_firestore(id,pageID,like_count):
     
 
 def thread_function(id,pageID):
-    like_count = get_like_v2(pageID)
+    like_count = get_telegram_subscriber(pageID)
     logging.info("get!!!")
     publish_to_firestore(id,pageID,like_count)
     logging.info("pub!!!")

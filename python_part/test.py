@@ -10,7 +10,9 @@ def get_like(page):
     soup = BeautifulSoup(html_text, 'html.parser')
     like = 0
     for link in soup.findAll("meta", {"name":"description"}): ## 
+        print(link)
         content = link.get('content')
+        content.replace(" ", "")
         num = re.findall(r'[\d]+[.,\d]+', content)
         like = (int)(num[0].replace(",", ""))
     
