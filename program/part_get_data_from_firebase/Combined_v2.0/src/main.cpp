@@ -6,6 +6,7 @@
 #include <max7219.h>
 #define LEFT 0
 #define RIGHT 1
+#define Input_Button 15
 MAX7219 max7219;
 
 // eeprom
@@ -51,6 +52,7 @@ WiFiServer server(80);
 // Variable to store the HTTP request
 String header;
 
+
 // Auxiliar variables to store the current output state
 String output26State = "off";
 String output27State = "off";
@@ -72,14 +74,29 @@ int connected_wifi;
 // connect wifi and firestore
 void connect();
 void running_ap();
+
+
 void setup()
 {
   EEPROM.begin(150);
   Serial.begin(9600);
-  // condition here
-  if (Wifi_status == true ){
-    connect();
+  pinMode(Input_Button,INPUT);
+
+  for (int i=0; i<50;i++){
+    Serial.print(".");
+    if (digitalRead(Input_Button) == 1){
+      connected_wifi = 0;
+      break;
+    }
+    else {
+      connected_wifi = 1;
+    }
+    delay(100);
   }
+
+  Serial.println("---------------------");
+  // condition here
+
   // WiFi.mode(WIFI_AP_STA);
   if (connected_wifi == 0){
     WiFi.softAP(ssid, password);
@@ -89,7 +106,9 @@ void setup()
     digitalWrite(output26, LOW);
     server.begin();
   }
-
+  if (Wifi_status == true && connected_wifi == 1){
+    connect();
+  }
 
 
   max7219.Begin();

@@ -11,10 +11,13 @@ firebase_admin.initialize_app(cred)
 def get_like(page):
     with urllib.request.urlopen('https://web.facebook.com/' + page) as response :
         body = response.read()
+        print(len(body))
     character_set = response.headers.get_content_charset()
     content = body.decode(character_set)
     workspace = content
+    print(workspace[2000:5000])
     try:
+        
         like = workspace[:workspace.index('&#x1785')].rsplit('.', 1)[1]
         count = ''
         for i in like:
@@ -24,6 +27,7 @@ def get_like(page):
                 count += i
         like_count = (int) (count)
     except :
+        like_count = 0
         print('error')
     return like_count
 

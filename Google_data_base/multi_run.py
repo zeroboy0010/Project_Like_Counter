@@ -57,7 +57,18 @@ def get_like_v2(page):
     for link in soup.findAll("meta", {"name":"description"}): ## 
         content = link.get('content')
         num = re.findall(r'[\d]+[.,\d]+', content)
-        like = (int)(num[0].replace(",", ""))
+        try :
+            like = (int)(num[0].replace(",", ""))
+        except :
+            logging.error("error getting like")
+            logging.error("full text : ")
+            # print(html_text)
+
+            logging.error("content : ")
+            print(content)
+            logging.error("num : ")
+            print(num)
+            like = 0
         return like
 
 def get_like(page):
@@ -87,11 +98,13 @@ def publish_to_firestore(id,pageID,like_count):
     })
     
 
-def thread_function(id,pageID):
-    like_count = get_telegram_subscriber(pageID)
+def thread_function(id,pageID,like_):
+    
+    like_count = get_like_v2(pageID)
     logging.info("get!!!")
-    publish_to_firestore(id,pageID,like_count)
-    logging.info("pub!!!")
+    if like_ != like_count and like_count != 0:
+        publish_to_firestore(id,pageID,like_count)
+        logging.info("pub!!!")
 
 
 def main():
@@ -102,8 +115,11 @@ def main():
         state = str(doc.to_dict()['state'])
         pageID = str(doc.to_dict()['pageID'])
         like = str(doc.to_dict()['like'])
-        
-        th = threading.Thread(target=thread_function, args=(doc.id,pageID,))
+        try :
+            like_fl = (int)(like)
+        except : 
+            like_fl = 0
+        th = threading.Thread(target=thread_function, args=(doc.id,pageID,like_fl,))
         threads.append(th)
         th.start()
 
