@@ -20,6 +20,7 @@ def get_like(page):
     
     return like
 main_loop = time()  # return time in sec
-likec = get_like('koithecambodia')
+# tubecoffeecambodia
+likec = get_like('tubecoffeecambodia')
 main_loop_time = time()
 print('Total time: ', main_loop_time - main_loop)

@@ -4,6 +4,9 @@
 #include <Firebase_ESP_Client.h>
 // 7 segment
 #include <max7219.h>
+
+#include <Wire.h>
+
 #define LEFT 0
 #define RIGHT 1
 #define Input_Button 15
@@ -80,11 +83,11 @@ void setup()
 {
   EEPROM.begin(150);
   Serial.begin(9600);
-  pinMode(Input_Button,INPUT);
+  pinMode(Input_Button,INPUT_PULLUP);
 
   for (int i=0; i<50;i++){
     Serial.print(".");
-    if (digitalRead(Input_Button) == 1){
+    if (digitalRead(Input_Button) == 0){
       connected_wifi = 0;
       break;
     }
@@ -94,6 +97,9 @@ void setup()
     delay(100);
   }
 
+
+
+  Wire.begin();  // I2C
   Serial.println("---------------------");
   // condition here
 
@@ -174,6 +180,12 @@ void loop()
             Serial.println("----------------------------------------");
             max7219.Clear();
             max7219.DisplayText(Like_str, RIGHT);
+            // I2C begin
+            Wire.beginTransmission(9);
+            Wire.write((byte*)&Like, 2);              // sends x 
+            Wire.endTransmission();    // stop transmitting
+            // I2C End 
+
         }
         else
             
@@ -381,8 +393,6 @@ void running_ap(){
 
 
 
-
-
 void store_data(){
   Input = Serial.readStringUntil('\n');
   for(int i = 0;i<Input.length();i++){
@@ -439,3 +449,4 @@ void store_data(){
   
   Output.clear();
 }
+
